@@ -1,20 +1,20 @@
 """
 db_query.py
 ===========
-A reusable template for running SQL queries against the AdventureWorks
-SQLite database and loading results into a pandas DataFrame.
+Runs SQL queries against AdventureWorks in PostgreSQL and saves results to Excel.
 
 REQUIREMENTS
 ------------
-Install these once in your terminal:
-    pip install sqlalchemy pandas openpyxl
+    pip install -r requirements.txt
 
 HOW TO USE
 ----------
-1. Make sure adventureworks.db is in the SAME folder as this script.
-2. Edit the SQL in the QUERIES section to ask your own questions.
-3. Run:  python db_query.py
-4. Excel files are saved next to this script automatically.
+1. Update the CONFIG section with your connection details if needed.
+2. Run:  python db_query.py
+3. Excel files are saved next to this script.
+
+NOTE: Do not commit real passwords to a public GitHub repo.
+      Move credentials to environment variables before going public.
 """
 
 # ---------------------------------------------------------------------------
@@ -24,54 +24,43 @@ import os
 import pandas as pd
 from sqlalchemy import create_engine, text
 
-# Always save output files next to this script, regardless of where
-# the terminal is pointed when you run it
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ---------------------------------------------------------------------------
-# CONFIG -- only change DB_FILENAME if your .db file has a different name
+# CONFIG
 # ---------------------------------------------------------------------------
-DB_FILENAME = "adventureworks.db"
+DB_HOST     = "localhost"
+DB_PORT     = 5432
+DB_NAME     = "adventureworks"
+DB_USER     = "awuser"
+DB_PASSWORD = "Gunner!!24"
 
-# Build the full path so the script always finds the .db file
-# no matter which folder your terminal is open in
-DB_PATH = os.path.join(SCRIPT_DIR, DB_FILENAME)
+CONNECTION_STRING = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}"
+    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # ---------------------------------------------------------------------------
 # CONNECTION
 # ---------------------------------------------------------------------------
-CONNECTION_STRING = f"sqlite:///{DB_PATH}"
-
 print("Connecting to database...")
 engine = create_engine(CONNECTION_STRING)
 
 try:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
-    print(f"  Connected to: {DB_PATH}\n")
+    print(f"  Connected to: {DB_NAME} on {DB_HOST}:{DB_PORT}\n")
 except Exception as e:
     print(f"  Connection failed: {e}")
     raise SystemExit(1)
 
 
 # ---------------------------------------------------------------------------
-# HELPER FUNCTIONS
+# HELPERS
 # ---------------------------------------------------------------------------
 
 def run_query(sql, params=None, label="Query"):
-    """
-    Run a SQL string and return results as a pandas DataFrame.
-
-    Parameters
-    ----------
-    sql    : str  -- your SQL statement (use :param_name for parameters)
-    params : dict -- optional dictionary of parameter values
-    label  : str  -- a friendly name printed in the output
-
-    Returns
-    -------
-    pd.DataFrame -- query results, ready to work with in pandas
-    """
+    """Run a SQL string and return results as a pandas DataFrame."""
     print(f"Running: {label}...")
     with engine.connect() as conn:
         df = pd.read_sql(text(sql), conn, params=params)
@@ -80,24 +69,21 @@ def run_query(sql, params=None, label="Query"):
 
 
 def save_to_excel(df, filename, sheet_name="Results"):
-    """
-    Save a DataFrame to an Excel file next to this script.
-    Requires:  pip install openpyxl
-    """
+    """Save a DataFrame to an Excel file next to this script."""
     full_path = os.path.join(SCRIPT_DIR, filename)
     df.to_excel(full_path, index=False, sheet_name=sheet_name)
-    print(f"  Saved to Excel: {full_path}")
+    print(f"  Saved: {full_path}")
 
 
 def save_to_csv(df, filename):
     """Save a DataFrame to a CSV file next to this script."""
     full_path = os.path.join(SCRIPT_DIR, filename)
     df.to_csv(full_path, index=False)
-    print(f"  Saved to CSV: {full_path}")
+    print(f"  Saved: {full_path}")
 
 
 def show(df, max_rows=20):
-    """Print a DataFrame nicely, limiting to max_rows."""
+    """Print a DataFrame neatly."""
     pd.set_option("display.max_columns", None)
     pd.set_option("display.width", 200)
     pd.set_option("display.float_format", "{:,.2f}".format)
@@ -108,20 +94,19 @@ def show(df, max_rows=20):
 
 
 # ---------------------------------------------------------------------------
-# QUERIES -- replace or add your own SQL here
+# QUERIES
 # ---------------------------------------------------------------------------
 
 # Query 1: Sales order summary by year
-# strftime is SQLite's way to extract date parts (no EXTRACT() like in PostgreSQL)
 q1 = run_query(
     sql="""
         SELECT
-            strftime('%Y', OrderDate)           AS order_year,
-            COUNT(*)                            AS order_count,
-            SUM(SubTotal)                       AS total_sales,
-            AVG(SubTotal)                       AS avg_order_value,
-            COUNT(DISTINCT CustomerID)          AS unique_customers
-        FROM Sales_SalesOrderHeader
+            EXTRACT(YEAR FROM orderdate)::int      AS order_year,
+            COUNT(*)                               AS order_count,
+            SUM(totaldue)                          AS total_sales,
+            AVG(totaldue)                          AS avg_order_value,
+            COUNT(DISTINCT customerid)             AS unique_customers
+        FROM sales.salesorderheader
         GROUP BY order_year
         ORDER BY order_year
     """,
@@ -134,16 +119,16 @@ show(q1)
 q2 = run_query(
     sql="""
         SELECT
-            p.Name                              AS product_name,
-            pc.Name                             AS category,
-            SUM(sod.LineTotal)                  AS total_revenue,
-            SUM(sod.OrderQty)                   AS units_sold,
-            AVG(sod.UnitPrice)                  AS avg_unit_price
-        FROM Sales_SalesOrderDetail         sod
-        JOIN Production_Product             p   ON p.ProductID              = sod.ProductID
-        JOIN Production_ProductSubcategory  psc ON psc.ProductSubcategoryID = p.ProductSubcategoryID
-        JOIN Production_ProductCategory     pc  ON pc.ProductCategoryID     = psc.ProductCategoryID
-        GROUP BY p.Name, pc.Name
+            p.name                                 AS product_name,
+            pc.name                                AS category,
+            SUM(sod.linetotal)                     AS total_revenue,
+            SUM(sod.orderqty)                      AS units_sold,
+            AVG(sod.unitprice)                     AS avg_unit_price
+        FROM sales.salesorderdetail            sod
+        JOIN production.product                p   ON p.productid              = sod.productid
+        JOIN production.productsubcategory     psc ON psc.productsubcategoryid = p.productsubcategoryid
+        JOIN production.productcategory        pc  ON pc.productcategoryid     = psc.productcategoryid
+        GROUP BY p.name, pc.name
         ORDER BY total_revenue DESC
         LIMIT 10
     """,
@@ -152,21 +137,20 @@ q2 = run_query(
 show(q2)
 
 
-# Query 3: Filter orders by territory name
-# Change "Northwest" to any other territory to explore different regions
+# Query 3: Filter orders by territory -- change :territory_name to explore regions
 q3 = run_query(
     sql="""
         SELECT
-            soh.SalesOrderID,
-            soh.OrderDate,
-            soh.TotalDue,
-            st.Name             AS territory,
-            c.AccountNumber     AS customer
-        FROM Sales_SalesOrderHeader  soh
-        JOIN Sales_SalesTerritory    st  ON st.TerritoryID = soh.TerritoryID
-        JOIN Sales_Customer          c   ON c.CustomerID   = soh.CustomerID
-        WHERE st.Name = :territory_name
-        ORDER BY soh.OrderDate DESC
+            soh.salesorderid,
+            soh.orderdate,
+            soh.totaldue,
+            st.name                                AS territory,
+            c.accountnumber                        AS customer
+        FROM sales.salesorderheader    soh
+        JOIN sales.salesterritory      st  ON st.territoryid = soh.territoryid
+        JOIN sales.customer            c   ON c.customerid   = soh.customerid
+        WHERE st.name = :territory_name
+        ORDER BY soh.orderdate DESC
         LIMIT 50
     """,
     params={"territory_name": "Northwest"},
@@ -179,14 +163,14 @@ show(q3)
 q4 = run_query(
     sql="""
         SELECT
-            d.Name                              AS department,
-            d.GroupName                         AS department_group,
-            COUNT(edh.BusinessEntityID)         AS employee_count
-        FROM HumanResources_Department              d
-        LEFT JOIN HumanResources_EmployeeDepartmentHistory edh
-               ON edh.DepartmentID = d.DepartmentID
-              AND edh.EndDate IS NULL
-        GROUP BY d.Name, d.GroupName
+            d.name                                 AS department,
+            d.groupname                            AS department_group,
+            COUNT(edh.businessentityid)            AS employee_count
+        FROM humanresources.department             d
+        LEFT JOIN humanresources.employeedepartmenthistory edh
+               ON edh.departmentid = d.departmentid
+              AND edh.enddate IS NULL
+        GROUP BY d.name, d.groupname
         ORDER BY employee_count DESC
     """,
     label="Employee Headcount by Department"
@@ -195,7 +179,7 @@ show(q4)
 
 
 # ---------------------------------------------------------------------------
-# SAVE RESULTS TO EXCEL
+# SAVE TO EXCEL
 # ---------------------------------------------------------------------------
 save_to_excel(q1, "sales_by_year.xlsx",      sheet_name="Sales by Year")
 save_to_excel(q2, "top_products.xlsx",       sheet_name="Top Products")
@@ -206,12 +190,10 @@ save_to_excel(q4, "employee_headcount.xlsx", sheet_name="Headcount")
 # ---------------------------------------------------------------------------
 # ADD YOUR OWN QUERY HERE
 # ---------------------------------------------------------------------------
-# Copy this block and fill in your SQL:
-#
 # my_query = run_query(
 #     sql="""
 #         SELECT *
-#         FROM your_table_name
+#         FROM schema_name.table_name
 #         LIMIT 100
 #     """,
 #     label="My Custom Query"

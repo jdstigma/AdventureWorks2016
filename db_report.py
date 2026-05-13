@@ -1,12 +1,12 @@
 """
 db_report.py
 ============
-Generates a full statistical report on the AdventureWorks SQLite database.
+Generates a full statistical report on AdventureWorks in PostgreSQL.
 
-Analyses included:
+Analyses:
   SALES      - Revenue trend with OLS regression + R2
-               Log10 transform of order values (skew correction)
-               Customer segmentation via K-Means clustering (3 groups)
+               Log10 transform of order values
+               Customer segmentation via K-Means (3 clusters)
                Territory performance ranking
   PRODUCTION - List price vs standard cost linear regression
                Scrap reason breakdown
@@ -18,11 +18,13 @@ Analyses included:
 OUTPUTS
 -------
   adventureworks_report.xlsx  -- Excel workbook, one sheet per analysis
-  adventureworks_report.html  -- Self-contained HTML with embedded charts
+  adventureworks_report.html  -- Self-contained HTML report with charts
 
 REQUIREMENTS
 ------------
-  pip install sqlalchemy pandas numpy scipy scikit-learn matplotlib openpyxl
+    pip install -r requirements.txt
+
+NOTE: Do not commit real passwords to a public GitHub repo.
 """
 
 # ---------------------------------------------------------------------------
@@ -36,7 +38,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import matplotlib
-matplotlib.use("Agg")  # non-interactive backend -- no pop-up windows
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
@@ -47,27 +49,38 @@ from sqlalchemy import create_engine, text
 
 warnings.filterwarnings("ignore")
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ---------------------------------------------------------------------------
 # CONFIG
 # ---------------------------------------------------------------------------
-SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-DB_PATH     = os.path.join(SCRIPT_DIR, "adventureworks.db")
-EXCEL_OUT   = os.path.join(SCRIPT_DIR, "adventureworks_report.xlsx")
-HTML_OUT    = os.path.join(SCRIPT_DIR, "adventureworks_report.html")
+DB_HOST     = "localhost"
+DB_PORT     = 5432
+DB_NAME     = "adventureworks"
+DB_USER     = "awuser"
+DB_PASSWORD = "Gunner!!24"
 
-# K-Means: number of customer / vendor segments
+EXCEL_OUT = os.path.join(SCRIPT_DIR, "adventureworks_report.xlsx")
+HTML_OUT  = os.path.join(SCRIPT_DIR, "adventureworks_report.html")
+
 N_CUSTOMER_CLUSTERS = 3
 N_VENDOR_CLUSTERS   = 3
 
 # ---------------------------------------------------------------------------
 # CONNECTION
 # ---------------------------------------------------------------------------
+CONNECTION_STRING = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}"
+    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
+
 print("Connecting to database...")
-engine = create_engine(f"sqlite:///{DB_PATH}")
+engine = create_engine(CONNECTION_STRING)
+
 try:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
-    print(f"  Connected to: {DB_PATH}\n")
+    print(f"  Connected to: {DB_NAME} on {DB_HOST}:{DB_PORT}\n")
 except Exception as e:
     print(f"  Connection failed: {e}")
     raise SystemExit(1)
@@ -84,7 +97,7 @@ def sql(query_str, params=None):
 
 
 def fig_to_base64(fig):
-    """Convert a matplotlib figure to a base64-encoded PNG string for HTML embedding."""
+    """Convert a matplotlib figure to a base64 PNG string for HTML embedding."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=130, bbox_inches="tight")
     buf.seek(0)
@@ -99,15 +112,13 @@ def section(title):
     print(f"{'=' * 60}")
 
 
-# Collect results for Excel and HTML
-excel_sheets = {}   # sheet_name -> DataFrame
-html_sections = []  # list of HTML strings
+excel_sheets  = {}
+html_sections = []
 
 
 def add_result(sheet_name, df, chart_b64=None, notes=""):
     """Store a result for both Excel and HTML output."""
     excel_sheets[sheet_name] = df
-    # Build HTML block
     table_html = df.to_html(index=False, classes="data-table", border=0)
     img_html   = f'<img src="data:image/png;base64,{chart_b64}" class="chart">' if chart_b64 else ""
     notes_html = f'<p class="notes">{notes}</p>' if notes else ""
@@ -122,39 +133,37 @@ def add_result(sheet_name, df, chart_b64=None, notes=""):
 
 
 # ===========================================================================
-# SALES ANALYSIS
+# SALES: Revenue Trend + OLS Regression
 # ===========================================================================
 section("SALES: Revenue Trend + OLS Regression")
 
 sales_trend = sql("""
     SELECT
-        strftime('%Y', OrderDate)           AS year,
-        strftime('%Y-%m', OrderDate)        AS year_month,
-        COUNT(*)                            AS order_count,
-        SUM(TotalDue)                       AS total_revenue,
-        AVG(TotalDue)                       AS avg_order_value
-    FROM Sales_SalesOrderHeader
-    GROUP BY year_month
+        EXTRACT(YEAR FROM orderdate)::int               AS year,
+        TO_CHAR(orderdate, 'YYYY-MM')                   AS year_month,
+        COUNT(*)                                        AS order_count,
+        SUM(totaldue)                                   AS total_revenue,
+        AVG(totaldue)                                   AS avg_order_value
+    FROM sales.salesorderheader
+    GROUP BY year, year_month
     ORDER BY year_month
 """)
 
-sales_trend["total_revenue"]    = sales_trend["total_revenue"].round(2)
-sales_trend["avg_order_value"]  = sales_trend["avg_order_value"].round(2)
+sales_trend["total_revenue"]   = sales_trend["total_revenue"].round(2)
+sales_trend["avg_order_value"] = sales_trend["avg_order_value"].round(2)
 
-# --- OLS regression: month index vs total revenue ---
 x = np.arange(len(sales_trend))
 y = sales_trend["total_revenue"].values
 slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-r_squared = round(r_value ** 2, 4)
+r_squared  = round(r_value ** 2, 4)
 trend_line = slope * x + intercept
 
-print(f"  OLS slope:   ${slope:,.0f} per month")
-print(f"  R-squared:   {r_squared}  (1.0 = perfect fit)")
-print(f"  P-value:     {p_value:.4f}")
+print(f"  OLS slope:  ${slope:,.0f} per month")
+print(f"  R-squared:  {r_squared}")
+print(f"  P-value:    {p_value:.4f}")
 
 sales_trend["regression_line"] = trend_line.round(2)
 
-# Chart
 fig, ax = plt.subplots(figsize=(12, 5))
 ax.bar(sales_trend["year_month"], sales_trend["total_revenue"],
        color="#4C72B0", alpha=0.7, label="Monthly Revenue")
@@ -164,43 +173,41 @@ ax.set_title("Monthly Sales Revenue with OLS Trend Line", fontsize=14)
 ax.set_xlabel("Month")
 ax.set_ylabel("Total Revenue ($)")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"${v:,.0f}"))
-tick_step = max(1, len(sales_trend) // 12)
-ax.set_xticks(sales_trend["year_month"][::tick_step])
-ax.set_xticklabels(sales_trend["year_month"][::tick_step], rotation=45, ha="right")
+step = max(1, len(sales_trend) // 12)
+ax.set_xticks(sales_trend["year_month"][::step])
+ax.set_xticklabels(sales_trend["year_month"][::step], rotation=45, ha="right")
 ax.legend()
 plt.tight_layout()
 chart1 = fig_to_base64(fig)
 
 add_result(
-    "Sales Revenue Trend",
-    sales_trend,
-    chart1,
+    "Sales Revenue Trend", sales_trend, chart1,
     f"OLS Regression: slope=${slope:,.0f}/month, R2={r_squared}, p={p_value:.4f}"
 )
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# SALES: Log10 Transform of Order Values
+# ===========================================================================
 section("SALES: Log10 Transform of Order Values")
 
 order_vals = sql("""
-    SELECT TotalDue AS order_value
-    FROM Sales_SalesOrderHeader
-    WHERE TotalDue > 0
+    SELECT totaldue AS order_value
+    FROM sales.salesorderheader
+    WHERE totaldue > 0
 """)
 
 order_vals["log10_order_value"] = np.log10(order_vals["order_value"])
-
-skew_raw  = round(order_vals["order_value"].skew(), 3)
-skew_log  = round(order_vals["log10_order_value"].skew(), 3)
-print(f"  Skewness (raw):   {skew_raw}")
-print(f"  Skewness (log10): {skew_log}  (closer to 0 = more normal)")
+skew_raw = round(float(order_vals["order_value"].skew()), 3)
+skew_log = round(float(order_vals["log10_order_value"].skew()), 3)
+print(f"  Skewness raw:   {skew_raw}")
+print(f"  Skewness log10: {skew_log}")
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 axes[0].hist(order_vals["order_value"], bins=60, color="#4C72B0", alpha=0.8)
 axes[0].set_title(f"Raw Order Values  (skew={skew_raw})")
 axes[0].set_xlabel("Order Value ($)")
 axes[0].xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"${v:,.0f}"))
-
 axes[1].hist(order_vals["log10_order_value"], bins=60, color="#DD8452", alpha=0.8)
 axes[1].set_title(f"Log10(Order Value)  (skew={skew_log})")
 axes[1].set_xlabel("log10(Order Value)")
@@ -211,67 +218,49 @@ log_summary = order_vals.describe().round(3).reset_index()
 log_summary.columns = ["Statistic", "order_value", "log10_order_value"]
 
 add_result(
-    "Sales Log10 Transform",
-    log_summary,
-    chart2,
-    f"Raw skewness={skew_raw}. After log10 transform skewness={skew_log}. "
-    f"Values closer to 0 indicate a more normal distribution."
+    "Sales Log10 Transform", log_summary, chart2,
+    f"Raw skewness={skew_raw}. After log10 transform skewness={skew_log}."
 )
 
 
-# ---------------------------------------------------------------------------
-section("SALES: Customer Segmentation (K-Means Clustering)")
+# ===========================================================================
+# SALES: Customer Segmentation (K-Means)
+# ===========================================================================
+section("SALES: Customer Segmentation (K-Means)")
 
 customer_data = sql("""
     SELECT
-        CustomerID,
+        customerid,
         COUNT(*)            AS order_count,
-        SUM(TotalDue)       AS total_spend,
-        AVG(TotalDue)       AS avg_order_value,
-        MAX(OrderDate)      AS last_order_date
-    FROM Sales_SalesOrderHeader
-    GROUP BY CustomerID
-    HAVING COUNT(*) >= 1
+        SUM(totaldue)       AS total_spend,
+        AVG(totaldue)       AS avg_order_value
+    FROM sales.salesorderheader
+    GROUP BY customerid
 """)
 
-# Features for clustering
-features = customer_data[["order_count", "total_spend", "avg_order_value"]].fillna(0)
+features        = customer_data[["order_count", "total_spend", "avg_order_value"]].fillna(0)
+features_scaled = StandardScaler().fit_transform(features)
 
-# Scale features so no single column dominates the clustering
-scaler          = StandardScaler()
-features_scaled = scaler.fit_transform(features)
-
-# K-Means with fixed random_state for reproducibility
 kmeans = KMeans(n_clusters=N_CUSTOMER_CLUSTERS, random_state=42, n_init=10)
 customer_data["cluster"] = kmeans.fit_predict(features_scaled)
 
-# Label clusters by their average spend (Low / Medium / High)
 cluster_means = customer_data.groupby("cluster")["total_spend"].mean().sort_values()
-label_map     = {c: lbl for c, lbl in zip(cluster_means.index, ["Low Value", "Mid Value", "High Value"])}
+label_map     = {c: l for c, l in zip(cluster_means.index, ["Low Value", "Mid Value", "High Value"])}
 customer_data["segment"] = customer_data["cluster"].map(label_map)
 
 cluster_summary = (
     customer_data.groupby("segment")
-    .agg(
-        customers      = ("CustomerID",     "count"),
-        avg_orders     = ("order_count",    "mean"),
-        avg_spend      = ("total_spend",    "mean"),
-        avg_order_val  = ("avg_order_value","mean"),
-    )
-    .round(2)
-    .reset_index()
+    .agg(customers=("customerid","count"), avg_orders=("order_count","mean"),
+         avg_spend=("total_spend","mean"), avg_order_val=("avg_order_value","mean"))
+    .round(2).reset_index()
 )
 print(cluster_summary.to_string(index=False))
 
-# Chart: scatter of order_count vs total_spend, coloured by segment
 colors = {"Low Value": "#4C72B0", "Mid Value": "#DD8452", "High Value": "#55A868"}
 fig, ax = plt.subplots(figsize=(9, 6))
 for seg, grp in customer_data.groupby("segment"):
-    ax.scatter(
-        grp["order_count"],
-        np.log10(grp["total_spend"] + 1),
-        label=seg, alpha=0.5, s=20, color=colors[seg]
-    )
+    ax.scatter(grp["order_count"], np.log10(grp["total_spend"] + 1),
+               label=seg, alpha=0.5, s=20, color=colors[seg])
 ax.set_title("Customer Segments (K-Means, 3 clusters)")
 ax.set_xlabel("Number of Orders")
 ax.set_ylabel("log10(Total Spend)")
@@ -280,32 +269,29 @@ plt.tight_layout()
 chart3 = fig_to_base64(fig)
 
 add_result(
-    "Customer Segments",
-    cluster_summary,
-    chart3,
-    f"K-Means clustering on order count, total spend, and avg order value. "
-    f"Y-axis uses log10 scale to handle revenue skew."
+    "Customer Segments", cluster_summary, chart3,
+    "K-Means on order count, total spend, avg order value. Y-axis log10 scaled."
 )
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# SALES: Territory Performance
+# ===========================================================================
 section("SALES: Territory Performance")
 
 territory = sql("""
     SELECT
-        st.Name                 AS territory,
-        st.CountryRegionCode    AS country,
-        COUNT(soh.SalesOrderID) AS order_count,
-        SUM(soh.TotalDue)       AS total_revenue,
-        AVG(soh.TotalDue)       AS avg_order_value
-    FROM Sales_SalesOrderHeader soh
-    JOIN Sales_SalesTerritory   st ON st.TerritoryID = soh.TerritoryID
-    GROUP BY st.Name, st.CountryRegionCode
+        st.name                                 AS territory,
+        st.countryregioncode                    AS country,
+        COUNT(soh.salesorderid)                 AS order_count,
+        SUM(soh.totaldue)                       AS total_revenue,
+        AVG(soh.totaldue)                       AS avg_order_value
+    FROM sales.salesorderheader    soh
+    JOIN sales.salesterritory      st ON st.territoryid = soh.territoryid
+    GROUP BY st.name, st.countryregioncode
     ORDER BY total_revenue DESC
 """)
-territory[["total_revenue", "avg_order_value"]] = territory[
-    ["total_revenue", "avg_order_value"]
-].round(2)
+territory[["total_revenue", "avg_order_value"]] = territory[["total_revenue", "avg_order_value"]].round(2)
 
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.barh(territory["territory"], territory["total_revenue"], color="#4C72B0", alpha=0.8)
@@ -320,21 +306,21 @@ add_result("Territory Performance", territory, chart4)
 
 
 # ===========================================================================
-# PRODUCTION ANALYSIS
+# PRODUCTION: List Price vs Standard Cost (OLS Regression)
 # ===========================================================================
-section("PRODUCTION: List Price vs Standard Cost (Linear Regression)")
+section("PRODUCTION: List Price vs Standard Cost")
 
 products = sql("""
     SELECT
-        p.Name              AS product_name,
-        p.ListPrice         AS list_price,
-        p.StandardCost      AS standard_cost,
-        pc.Name             AS category
-    FROM Production_Product             p
-    JOIN Production_ProductSubcategory  psc ON psc.ProductSubcategoryID = p.ProductSubcategoryID
-    JOIN Production_ProductCategory     pc  ON pc.ProductCategoryID     = psc.ProductCategoryID
-    WHERE p.ListPrice > 0
-      AND p.StandardCost > 0
+        p.name          AS product_name,
+        p.listprice     AS list_price,
+        p.standardcost  AS standard_cost,
+        pc.name         AS category
+    FROM production.product             p
+    JOIN production.productsubcategory  psc ON psc.productsubcategoryid = p.productsubcategoryid
+    JOIN production.productcategory     pc  ON pc.productcategoryid     = psc.productcategoryid
+    WHERE p.listprice > 0
+      AND p.standardcost > 0
 """)
 
 x2 = products["standard_cost"].values
@@ -349,9 +335,8 @@ y2_line = slope2 * x2_line + intercept2
 fig, ax = plt.subplots(figsize=(8, 6))
 for cat, grp in products.groupby("category"):
     ax.scatter(grp["standard_cost"], grp["list_price"], label=cat, alpha=0.7, s=40)
-ax.plot(x2_line, y2_line, color="red", linewidth=2,
-        label=f"OLS (R2={r_sq2})")
-ax.set_title("List Price vs Standard Cost by Product Category")
+ax.plot(x2_line, y2_line, color="red", linewidth=2, label=f"OLS (R2={r_sq2})")
+ax.set_title("List Price vs Standard Cost by Category")
 ax.set_xlabel("Standard Cost ($)")
 ax.set_ylabel("List Price ($)")
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"${v:,.0f}"))
@@ -370,24 +355,24 @@ prod_stats = pd.DataFrame([{
 }])
 
 add_result(
-    "Price vs Cost Regression",
-    prod_stats,
-    chart5,
+    "Price vs Cost Regression", prod_stats, chart5,
     f"OLS: ListPrice = {slope2:.3f} * StandardCost + {intercept2:.2f}. R2={r_sq2}."
 )
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# PRODUCTION: Scrap Reason Breakdown
+# ===========================================================================
 section("PRODUCTION: Scrap Reason Breakdown")
 
 scrap = sql("""
     SELECT
-        sr.Name                 AS scrap_reason,
+        sr.name                 AS scrap_reason,
         COUNT(*)                AS occurrences,
-        SUM(wo.ScrappedQty)     AS total_scrapped_qty
-    FROM Production_WorkOrder   wo
-    JOIN Production_ScrapReason sr ON sr.ScrapReasonID = wo.ScrapReasonID
-    GROUP BY sr.Name
+        SUM(wo.scrappedqty)     AS total_scrapped_qty
+    FROM production.workorder    wo
+    JOIN production.scrapreason  sr ON sr.scrapreasonid = wo.scrapreasonid
+    GROUP BY sr.name
     ORDER BY total_scrapped_qty DESC
 """)
 
@@ -403,68 +388,66 @@ add_result("Scrap Reasons", scrap, chart6)
 
 
 # ===========================================================================
-# HR ANALYSIS
+# HR: Pay Rate Distribution + Log10
 # ===========================================================================
 section("HR: Pay Rate Distribution + Log10 Transform")
 
 pay = sql("""
     SELECT
-        e.BusinessEntityID,
-        eph.Rate                AS pay_rate,
-        d.Name                  AS department,
-        e.JobTitle
-    FROM HumanResources_Employee                    e
-    JOIN HumanResources_EmployeePayHistory          eph ON eph.BusinessEntityID = e.BusinessEntityID
-    JOIN HumanResources_EmployeeDepartmentHistory   edh ON edh.BusinessEntityID = e.BusinessEntityID
-                                                       AND edh.EndDate IS NULL
-    JOIN HumanResources_Department                  d   ON d.DepartmentID = edh.DepartmentID
+        e.businessentityid,
+        eph.rate                AS pay_rate,
+        d.name                  AS department,
+        e.jobtitle
+    FROM humanresources.employee                        e
+    JOIN humanresources.employeepayhistory              eph ON eph.businessentityid = e.businessentityid
+    JOIN humanresources.employeedepartmenthistory       edh ON edh.businessentityid = e.businessentityid
+                                                           AND edh.enddate IS NULL
+    JOIN humanresources.department                      d   ON d.departmentid = edh.departmentid
 """)
 
 pay["log10_pay_rate"] = np.log10(pay["pay_rate"])
-skew_pay     = round(pay["pay_rate"].skew(), 3)
-skew_pay_log = round(pay["log10_pay_rate"].skew(), 3)
-print(f"  Pay rate skewness (raw):   {skew_pay}")
-print(f"  Pay rate skewness (log10): {skew_pay_log}")
+skew_pay     = round(float(pay["pay_rate"].skew()), 3)
+skew_pay_log = round(float(pay["log10_pay_rate"].skew()), 3)
+print(f"  Pay rate skewness raw:   {skew_pay}")
+print(f"  Pay rate skewness log10: {skew_pay_log}")
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 axes[0].hist(pay["pay_rate"], bins=30, color="#4C72B0", alpha=0.8)
 axes[0].set_title(f"Raw Pay Rate  (skew={skew_pay})")
 axes[0].set_xlabel("Hourly Pay Rate ($)")
-
 axes[1].hist(pay["log10_pay_rate"], bins=30, color="#DD8452", alpha=0.8)
 axes[1].set_title(f"Log10(Pay Rate)  (skew={skew_pay_log})")
 axes[1].set_xlabel("log10(Pay Rate)")
 plt.tight_layout()
 chart7 = fig_to_base64(fig)
 
-pay_summary = pay.groupby("department")["pay_rate"].agg(
-    employees="count",
-    avg_rate="mean",
-    min_rate="min",
-    max_rate="max"
-).round(2).reset_index()
+pay_summary = (
+    pay.groupby("department")["pay_rate"]
+    .agg(employees="count", avg_rate="mean", min_rate="min", max_rate="max")
+    .round(2).reset_index()
+)
 
 add_result(
-    "HR Pay Distribution",
-    pay_summary,
-    chart7,
-    f"Raw pay rate skewness={skew_pay}. Log10 skewness={skew_pay_log}."
+    "HR Pay Distribution", pay_summary, chart7,
+    f"Raw skewness={skew_pay}. Log10 skewness={skew_pay_log}."
 )
 
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# HR: Headcount by Department
+# ===========================================================================
 section("HR: Headcount by Department")
 
 headcount = sql("""
     SELECT
-        d.Name          AS department,
-        d.GroupName     AS group_name,
-        COUNT(edh.BusinessEntityID) AS employee_count
-    FROM HumanResources_Department d
-    LEFT JOIN HumanResources_EmployeeDepartmentHistory edh
-           ON edh.DepartmentID = d.DepartmentID
-          AND edh.EndDate IS NULL
-    GROUP BY d.Name, d.GroupName
+        d.name          AS department,
+        d.groupname     AS group_name,
+        COUNT(edh.businessentityid) AS employee_count
+    FROM humanresources.department d
+    LEFT JOIN humanresources.employeedepartmenthistory edh
+           ON edh.departmentid = d.departmentid
+          AND edh.enddate IS NULL
+    GROUP BY d.name, d.groupname
     ORDER BY employee_count DESC
 """)
 
@@ -480,21 +463,20 @@ add_result("HR Headcount", headcount, chart8)
 
 
 # ===========================================================================
-# PURCHASING ANALYSIS
+# PURCHASING: Vendor Spend Clustering (K-Means)
 # ===========================================================================
-section("PURCHASING: Vendor Spend Clustering (K-Means)")
+section("PURCHASING: Vendor Spend Clustering")
 
 vendor_data = sql("""
     SELECT
-        v.Name                  AS vendor_name,
-        COUNT(poh.PurchaseOrderID)  AS order_count,
-        SUM(poh.TotalDue)           AS total_spend,
-        AVG(poh.TotalDue)           AS avg_order_value,
-        AVG(poh.Freight)            AS avg_freight
-    FROM Purchasing_PurchaseOrderHeader poh
-    JOIN Purchasing_Vendor              v ON v.BusinessEntityID = poh.VendorID
-    GROUP BY v.Name
-    HAVING COUNT(poh.PurchaseOrderID) >= 1
+        v.name                          AS vendor_name,
+        COUNT(poh.purchaseorderid)      AS order_count,
+        SUM(poh.totaldue)               AS total_spend,
+        AVG(poh.totaldue)               AS avg_order_value,
+        AVG(poh.freight)                AS avg_freight
+    FROM purchasing.purchaseorderheader    poh
+    JOIN purchasing.vendor                 v ON v.businessentityid = poh.vendorid
+    GROUP BY v.name
 """)
 
 v_features = vendor_data[["order_count", "total_spend", "avg_order_value"]].fillna(0)
@@ -503,31 +485,23 @@ v_scaled   = StandardScaler().fit_transform(v_features)
 vkmeans = KMeans(n_clusters=N_VENDOR_CLUSTERS, random_state=42, n_init=10)
 vendor_data["cluster"] = vkmeans.fit_predict(v_scaled)
 
-v_means   = vendor_data.groupby("cluster")["total_spend"].mean().sort_values()
-v_map     = {c: lbl for c, lbl in zip(v_means.index, ["Low Spend", "Mid Spend", "High Spend"])}
+v_means = vendor_data.groupby("cluster")["total_spend"].mean().sort_values()
+v_map   = {c: l for c, l in zip(v_means.index, ["Low Spend", "Mid Spend", "High Spend"])}
 vendor_data["segment"] = vendor_data["cluster"].map(v_map)
 
 vendor_summary = (
     vendor_data.groupby("segment")
-    .agg(
-        vendors        = ("vendor_name",    "count"),
-        avg_orders     = ("order_count",    "mean"),
-        avg_spend      = ("total_spend",    "mean"),
-        avg_order_val  = ("avg_order_value","mean"),
-    )
-    .round(2)
-    .reset_index()
+    .agg(vendors=("vendor_name","count"), avg_orders=("order_count","mean"),
+         avg_spend=("total_spend","mean"), avg_order_val=("avg_order_value","mean"))
+    .round(2).reset_index()
 )
 print(vendor_summary.to_string(index=False))
 
 v_colors = {"Low Spend": "#4C72B0", "Mid Spend": "#DD8452", "High Spend": "#55A868"}
 fig, ax = plt.subplots(figsize=(9, 6))
 for seg, grp in vendor_data.groupby("segment"):
-    ax.scatter(
-        grp["order_count"],
-        np.log10(grp["total_spend"] + 1),
-        label=seg, alpha=0.7, s=60, color=v_colors[seg]
-    )
+    ax.scatter(grp["order_count"], np.log10(grp["total_spend"] + 1),
+               label=seg, alpha=0.7, s=60, color=v_colors[seg])
 ax.set_title("Vendor Segments (K-Means, 3 clusters)")
 ax.set_xlabel("Number of Purchase Orders")
 ax.set_ylabel("log10(Total Spend)")
@@ -536,29 +510,27 @@ plt.tight_layout()
 chart9 = fig_to_base64(fig)
 
 add_result(
-    "Vendor Segments",
-    vendor_summary,
-    chart9,
-    "K-Means clustering on order count, total spend, and avg order value."
+    "Vendor Segments", vendor_summary, chart9,
+    "K-Means on order count, total spend, avg order value."
 )
 
 
-# ---------------------------------------------------------------------------
-section("PURCHASING: Purchase Order Trends Over Time")
+# ===========================================================================
+# PURCHASING: Purchase Order Trends Over Time
+# ===========================================================================
+section("PURCHASING: Purchase Order Trends")
 
 po_trend = sql("""
     SELECT
-        strftime('%Y-%m', OrderDate)    AS year_month,
+        TO_CHAR(orderdate, 'YYYY-MM')   AS year_month,
         COUNT(*)                        AS order_count,
-        SUM(TotalDue)                   AS total_spend,
-        AVG(TotalDue)                   AS avg_order_value
-    FROM Purchasing_PurchaseOrderHeader
+        SUM(totaldue)                   AS total_spend,
+        AVG(totaldue)                   AS avg_order_value
+    FROM purchasing.purchaseorderheader
     GROUP BY year_month
     ORDER BY year_month
 """)
-po_trend[["total_spend", "avg_order_value"]] = po_trend[
-    ["total_spend", "avg_order_value"]
-].round(2)
+po_trend[["total_spend", "avg_order_value"]] = po_trend[["total_spend", "avg_order_value"]].round(2)
 
 fig, ax = plt.subplots(figsize=(12, 4))
 ax.bar(po_trend["year_month"], po_trend["total_spend"], color="#55A868", alpha=0.8)
@@ -566,9 +538,9 @@ ax.set_title("Monthly Purchasing Spend")
 ax.set_xlabel("Month")
 ax.set_ylabel("Total Spend ($)")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"${v:,.0f}"))
-tick_step = max(1, len(po_trend) // 12)
-ax.set_xticks(po_trend["year_month"][::tick_step])
-ax.set_xticklabels(po_trend["year_month"][::tick_step], rotation=45, ha="right")
+step = max(1, len(po_trend) // 12)
+ax.set_xticks(po_trend["year_month"][::step])
+ax.set_xticklabels(po_trend["year_month"][::step], rotation=45, ha="right")
 plt.tight_layout()
 chart10 = fig_to_base64(fig)
 
@@ -576,7 +548,7 @@ add_result("Purchasing Trends", po_trend, chart10)
 
 
 # ===========================================================================
-# OUTPUT: EXCEL WORKBOOK
+# OUTPUT: EXCEL
 # ===========================================================================
 section("Writing Excel Workbook")
 
@@ -598,7 +570,7 @@ nav_links = "".join(
 )
 
 html_body = "\n".join(
-    s.replace('<section>', f'<section id="{list(excel_sheets.keys())[i].replace(" ", "-")}">')
+    s.replace("<section>", f'<section id="{list(excel_sheets.keys())[i].replace(" ", "-")}">')
     for i, s in enumerate(html_sections)
 )
 
@@ -636,7 +608,7 @@ html = f"""<!DOCTYPE html>
 </header>
 <nav>{nav_links}</nav>
 <main>{html_body}</main>
-<footer>Generated by db_report.py &mdash; AdventureWorks SQLite</footer>
+<footer>Generated by db_report.py &mdash; AdventureWorks PostgreSQL</footer>
 </body>
 </html>"""
 
@@ -644,4 +616,4 @@ with open(HTML_OUT, "w", encoding="utf-8") as f:
     f.write(html)
 
 print(f"  Saved: {HTML_OUT}")
-print("\nDone! Open adventureworks_report.html in your browser for the full report.\n")
+print("\nDone! Open adventureworks_report.html in a browser for the full report.\n")
