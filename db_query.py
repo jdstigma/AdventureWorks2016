@@ -121,7 +121,7 @@ q2 = run_query(
         SELECT
             p.name                                 AS product_name,
             pc.name                                AS category,
-            SUM(sod.linetotal)                     AS total_revenue,
+            SUM(sod.unitprice * (1.0 - sod.unitpricediscount) * sod.orderqty) AS total_revenue,
             SUM(sod.orderqty)                      AS units_sold,
             AVG(sod.unitprice)                     AS avg_unit_price
         FROM sales.salesorderdetail            sod

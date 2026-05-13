@@ -317,10 +317,11 @@ products = sql("""
         p.standardcost  AS standard_cost,
         pc.name         AS category
     FROM production.product             p
-    JOIN production.productsubcategory  psc ON psc.productsubcategoryid = p.productsubcategoryid
-    JOIN production.productcategory     pc  ON pc.productcategoryid     = psc.productcategoryid
+    LEFT JOIN production.productsubcategory  psc ON psc.productsubcategoryid = p.productsubcategoryid
+    LEFT JOIN production.productcategory     pc  ON pc.productcategoryid     = psc.productcategoryid
     WHERE p.listprice > 0
       AND p.standardcost > 0
+      AND psc.productsubcategoryid IS NOT NULL
 """)
 
 x2 = products["standard_cost"].values
