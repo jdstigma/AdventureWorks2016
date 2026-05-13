@@ -187,14 +187,12 @@ show(q4)
 
 
 # ---------------------------------------------------------------------------
-# OPTIONAL: Save results to files
+# SAVE RESULTS TO FILES
 # ---------------------------------------------------------------------------
-# Uncomment any of these lines to save a query result to a file:
-
-# save_to_excel(q1, "sales_by_year.xlsx",       sheet_name="Sales by Year")
-# save_to_excel(q2, "top_products.xlsx",         sheet_name="Top Products")
-# save_to_csv(q3,   "northwest_orders.csv")
-# save_to_csv(q4,   "employee_headcount.csv")
+save_to_excel(q1, "sales_by_year.xlsx",    sheet_name="Sales by Year")
+save_to_excel(q2, "top_products.xlsx",     sheet_name="Top Products")
+save_to_excel(q3, "northwest_orders.xlsx", sheet_name="Northwest Orders")
+save_to_excel(q4, "employee_headcount.xlsx", sheet_name="Headcount")
 
 
 # ---------------------------------------------------------------------------
