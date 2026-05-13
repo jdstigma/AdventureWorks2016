@@ -1,5 +1,6 @@
 {
   "name": "AdventureWorks2016",
   "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+  "remoteUser": "root",
   "postCreateCommand": "rm -f /etc/apt/sources.list.d/yarn.list && apt-get update && apt-get install -y postgresql && service postgresql start && sudo -u postgres psql -c \"ALTER USER postgres PASSWORD 'postgres';\" && pip install -r requirements.txt"
 }
