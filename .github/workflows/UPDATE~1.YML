@@ -87,7 +87,10 @@ jobs:
         run: |
           cp aw_data/*.csv AdventureWorks-for-Postgres/
           cd AdventureWorks-for-Postgres
-          psql -h localhost -U postgres -d adventureworks -f install.sql
+          # Prepend FK-disable command so all inserts run without constraint checks,
+          # then re-enable at the end. All runs in one psql session.
+          { echo "SET session_replication_role = replica;"; cat install.sql; echo "SET session_replication_role = DEFAULT;"; } | \
+            psql -h localhost -U postgres -d adventureworks
 
       # -----------------------------------------------------------------------
       # 7. Grant awuser read access to all schemas
