@@ -1,0 +1,16 @@
+{
+    "files.exclude": {
+        "**/*.db": true,
+        "**/*.sqlite": true,
+        "**/*.xlsx": true,
+        "**/*.csv": true
+    },
+    "search.exclude": {
+        "**/*.db": true,
+        "**/*.sqlite": true
+    },
+    "files.watcherExclude": {
+        "**/*.db": true,
+        "**/*.sqlite": true
+    }
+}
