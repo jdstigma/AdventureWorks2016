@@ -144,12 +144,11 @@ q3 = run_query(
             soh.salesorderid,
             soh.orderdate,
             soh.totaldue,
-            st.name                                AS territory,
-            c.accountnumber                        AS customer
+            st.name::text                          AS territory,
+            soh.accountnumber                      AS customer
         FROM sales.salesorderheader    soh
         JOIN sales.salesterritory      st  ON st.territoryid = soh.territoryid
-        JOIN sales.customer            c   ON c.customerid   = soh.customerid
-        WHERE st.name = :territory_name
+        WHERE st.name::text = :territory_name
         ORDER BY soh.orderdate DESC
         LIMIT 50
     """,
