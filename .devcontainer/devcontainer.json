@@ -1,0 +1,11 @@
+{
+  "name": "AdventureWorks2016",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+  "postCreateCommand": "pip install -r requirements.txt && sudo service postgresql start && sudo -u postgres psql -c \"ALTER USER postgres PASSWORD 'postgres';\"",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/postgres:1": {
+      "version": "latest"
+    }
+  }
+}
