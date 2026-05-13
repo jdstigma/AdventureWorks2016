@@ -1,8 +1,18 @@
-psycopg2-binary
-pandas
+# Database connectivity
 sqlalchemy
+psycopg2-binary
+ 
+# Data manipulation
+pandas
 numpy
-matplotlib
-seaborn
+ 
+# Statistical analysis and machine learning
+# Note: installed as "scikit-learn" but imported in code as "sklearn"
+scikit-learn
 scipy
-jupyter
+ 
+# Charting and visualization
+matplotlib
+ 
+# Excel file output
+openpyxl
