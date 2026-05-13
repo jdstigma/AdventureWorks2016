@@ -1,9 +1,7 @@
 {
     "files.exclude": {
         "**/*.db": true,
-        "**/*.sqlite": true,
-        "**/*.xlsx": true,
-        "**/*.csv": true
+        "**/*.sqlite": true        
     },
     "search.exclude": {
         "**/*.db": true,
