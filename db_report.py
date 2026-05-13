@@ -41,8 +41,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 from scipy import stats
-from sklearn_cluster import KMeans
-from sklearn_preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 from sqlalchemy import create_engine, text
 
 warnings.filterwarnings("ignore")
