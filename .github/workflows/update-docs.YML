@@ -1,0 +1,166 @@
+name: Update Documentation
+
+# Runs on every push to main and on pull requests targeting main.
+# After all scripts complete, updated output files are committed back
+# to the repo automatically.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+
+    # ---------------------------------------------------------------------------
+    # PostgreSQL service container -- spun up before the job steps run
+    # ---------------------------------------------------------------------------
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres   # superuser password for setup only
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+
+      # -----------------------------------------------------------------------
+      # 1. Check out the repository (with LFS so adventureworks.db is included)
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # -----------------------------------------------------------------------
+      # 2. Set up Python
+      # -----------------------------------------------------------------------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # -----------------------------------------------------------------------
+      # 3. Install Python dependencies
+      # -----------------------------------------------------------------------
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # -----------------------------------------------------------------------
+      # 4. Create the AdventureWorks database and user in PostgreSQL
+      # -----------------------------------------------------------------------
+      - name: Create database and user
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -c "CREATE USER awuser WITH PASSWORD 'Gunner!!24';"
+          psql -h localhost -U postgres -c "CREATE DATABASE adventureworks OWNER awuser;"
+          psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE adventureworks TO awuser;"
+
+      # -----------------------------------------------------------------------
+      # 5. Download the AdventureWorks CSV source files and the Postgres loader
+      # -----------------------------------------------------------------------
+      - name: Download AdventureWorks data
+        run: |
+          curl -L -o aw.zip "https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks-oltp-install-script.zip"
+          unzip -q aw.zip -d aw_data
+          git clone --depth 1 https://github.com/lorint/AdventureWorks-for-Postgres.git
+
+      # -----------------------------------------------------------------------
+      # 6. Load AdventureWorks into PostgreSQL
+      # -----------------------------------------------------------------------
+      - name: Load AdventureWorks into PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: |
+          cp aw_data/*.csv AdventureWorks-for-Postgres/
+          cd AdventureWorks-for-Postgres
+          # Convert Microsoft's raw CSV format to tab-delimited format
+          # that install.sql expects (requires the lorint Ruby helper script)
+          ruby update_csvs.rb
+          # Load with FK checks disabled to handle insert ordering issues
+          { echo "SET session_replication_role = replica;"; cat install.sql; echo "SET session_replication_role = DEFAULT;"; } | \
+            psql -h localhost -U postgres -d adventureworks
+
+      # -----------------------------------------------------------------------
+      # 7. Grant awuser read access to all schemas
+      # -----------------------------------------------------------------------
+      - name: Grant schema permissions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d adventureworks -c \
+            "GRANT USAGE ON SCHEMA sales, production, purchasing, humanresources, person TO awuser;"
+          psql -h localhost -U postgres -d adventureworks -c \
+            "GRANT SELECT ON ALL TABLES IN SCHEMA sales, production, purchasing, humanresources, person TO awuser;"
+
+      # -----------------------------------------------------------------------
+      # 8. Run the three Python scripts
+      # -----------------------------------------------------------------------
+      - name: Run db_explore.py
+        run: python db_explore.py
+
+      - name: Run db_query.py
+        run: python db_query.py
+
+      - name: Run db_report.py
+        run: python db_report.py
+
+      # -----------------------------------------------------------------------
+      # 9. Execute Jupyter notebook and export to HTML
+      # -----------------------------------------------------------------------
+      - name: Run analysis.ipynb
+        run: |
+          jupyter nbconvert --to notebook --execute --inplace \
+            --ExecutePreprocessor.timeout=300 \
+            analysis.ipynb
+          jupyter nbconvert --to html analysis.ipynb --output analysis_notebook.html
+
+      # -----------------------------------------------------------------------
+      # 10. Commit updated output files back to the repo
+      #    [skip ci] in the commit message prevents this commit from
+      #    triggering another action run (infinite loop prevention).
+      #    The step is skipped on pull requests -- only pushes to main commit.
+      # -----------------------------------------------------------------------
+      - name: Commit updated documentation
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.name  "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            adventureworks_profile.csv \
+            adventureworks_report.html \
+            adventureworks_report.xlsx \
+            sales_by_year.xlsx \
+            top_products.xlsx \
+            northwest_orders.xlsx \
+            employee_headcount.xlsx \
+            analysis.ipynb \
+            analysis_notebook.html \
+            sales_trend_chart.png \
+            customer_elbow_chart.png \
+            customer_segments_chart.png \
+            product_pricing_chart.png \
+            vendor_segments_chart.png \
+            vendor_pareto_chart.png \
+            po_trend_chart.png
+
+          # Only commit and push if something actually changed -- avoids empty commits
+          if git diff --staged --quiet; then
+            echo "No changes to commit -- outputs are unchanged."
+          else
+            git commit -m "docs: auto-update reports and profile [skip ci]"
+            git push
+          fi

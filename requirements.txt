@@ -1,18 +1,23 @@
 # Database connectivity
 sqlalchemy
 psycopg2-binary
- 
+
 # Data manipulation
 pandas
 numpy
- 
+
 # Statistical analysis and machine learning
 # Note: installed as "scikit-learn" but imported in code as "sklearn"
 scikit-learn
 scipy
- 
+
 # Charting and visualization
 matplotlib
- 
+seaborn
+
 # Excel file output
 openpyxl
+
+# Jupyter notebook execution
+nbconvert
+ipykernel
