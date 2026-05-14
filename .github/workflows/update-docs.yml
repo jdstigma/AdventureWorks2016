@@ -34,7 +34,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          lfs: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
