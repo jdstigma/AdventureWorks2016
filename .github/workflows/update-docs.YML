@@ -87,8 +87,10 @@ jobs:
         run: |
           cp aw_data/*.csv AdventureWorks-for-Postgres/
           cd AdventureWorks-for-Postgres
-          # Prepend FK-disable command so all inserts run without constraint checks,
-          # then re-enable at the end. All runs in one psql session.
+          # Convert Microsoft's raw CSV format to tab-delimited format
+          # that install.sql expects (requires the lorint Ruby helper script)
+          ruby update_csvs.rb
+          # Load with FK checks disabled to handle insert ordering issues
           { echo "SET session_replication_role = replica;"; cat install.sql; echo "SET session_replication_role = DEFAULT;"; } | \
             psql -h localhost -U postgres -d adventureworks
 
@@ -137,8 +139,10 @@ jobs:
             northwest_orders.xlsx \
             employee_headcount.xlsx
 
-          # Only commit if something actually changed -- avoids empty commits
-          git diff --staged --quiet || \
+          # Only commit and push if something actually changed -- avoids empty commits
+          if git diff --staged --quiet; then
+            echo "No changes to commit -- outputs are unchanged."
+          else
             git commit -m "docs: auto-update reports and profile [skip ci]"
-
-          git push
+            git push
+          fi
