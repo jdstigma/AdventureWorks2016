@@ -35,12 +35,12 @@ humanresources,shift,starttime,time without time zone,3,0,0.0,,3,,,,,07:00:00 (1
 humanresources,shift,endtime,time without time zone,3,0,0.0,,3,,,,,07:00:00 (1) | 23:00:00 (1) | 15:00:00 (1)
 humanresources,shift,modifieddate,timestamp without time zone,3,0,0.0,,1,,,,,2008-04-30 00:00:00 (3)
 person,address,addressid,integer,19614,0,0.0,,19614,1.0,32521.0,19516.28,20093.5,26264 (1) | 24416 (1) | 26745 (1) | 18803 (1) | 22344 (1)
-person,address,addressline1,character varying,19614,0,0.0,,13572,,,,,"AttachÃ© de Presse (17) | Midi-Couleurs (15) | 88, avenue de lÂ´ Union Centra (13) | 6, route de Marseille (12) | Im Himmelsweg 89 (10)"
+person,address,addressline1,character varying,19614,0,0.0,,13572,,,,,"AttachÃÂ© de Presse (17) | Midi-Couleurs (15) | 88, avenue de lÃÂ´ Union Cent (13) | 6, route de Marseille (12) | Helsenbergbogen 6 (10)"
 person,address,addressline2,character varying,19614,19252,98.2,HIGH,195,,,,,Verkaufsabteilung (35) | Einkaufsabteilung (16) | # 1 (9) | # 2 (8) | Kreditorenbuchhaltung (8)
 person,address,city,character varying,19614,0,0.0,,575,,,,,London (434) | Paris (398) | Burien (215) | Concord (214) | Bellingham (213)
 person,address,stateprovinceid,integer,19614,0,0.0,,74,1.0,181.0,49.28,50.0,"9 (4,564) | 79 (2,636) | 14 (1,954) | 50 (1,588) | 7 (1,579)"
 person,address,postalcode,character varying,19614,0,0.0,,661,,,,,98168 (215) | 94519 (214) | 98225 (213) | 97005 (213) | 91910 (207)
-person,address,spatiallocation,bytea,19614,0,0.0,,17878,,,,,<memory at 0x7fce193225c0> (918) | <memory at 0x7fce19322440> (4) | <memory at 0x7fce19322740> (4) | <memory at 0x7fce19322680> (3) | <memory at 0x7fce19321fc0> (3)
+person,address,spatiallocation,bytea,19614,0,0.0,,17878,,,,,<memory at 0x7fb6562265c0> (918) | <memory at 0x7fb656226440> (4) | <memory at 0x7fb656226740> (4) | <memory at 0x7fb656226680> (3) | <memory at 0x7fb656225fc0> (3)
 person,address,rowguid,uuid,19614,0,0.0,,19614,,,,,04595451-28a1-48c3-a4a9-10003a (1) | 2945dc7c-c683-4711-a6dd-5a320e (1) | 54601994-20ab-4b73-a14e-720b5a (1) | d9790e3b-d38f-4c78-b9c0-8cbab4 (1) | 08614d4d-32f4-4696-b6e4-8bc2bb (1)
 person,address,modifieddate,timestamp without time zone,19614,0,0.0,,1280,,,,,"2024-12-20 10:09:29.423000 (1,851) | 2024-07-30 00:00:00 (119) | 2024-06-29 00:00:00 (107) | 2023-06-30 00:00:00 (88) | 2022-06-30 00:00:00 (87)"
 person,countryregion,countryregioncode,character varying,238,0,0.0,,238,,,,,FK (1) | KP (1) | DK (1) | SN (1) | RU (1)
