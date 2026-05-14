@@ -471,10 +471,10 @@ section("PURCHASING: Vendor Spend Clustering")
 vendor_data = sql("""
     SELECT
         v.name                          AS vendor_name,
-        COUNT(poh.purchaseorderid)      AS order_count,
-        SUM(poh.totaldue)               AS total_spend,
-        AVG(poh.totaldue)               AS avg_order_value,
-        AVG(poh.freight)                AS avg_freight
+        COUNT(poh.purchaseorderid)                              AS order_count,
+        SUM(poh.subtotal + poh.taxamt + poh.freight)            AS total_spend,
+        AVG(poh.subtotal + poh.taxamt + poh.freight)            AS avg_order_value,
+        AVG(poh.freight)                                        AS avg_freight
     FROM purchasing.purchaseorderheader    poh
     JOIN purchasing.vendor                 v ON v.businessentityid = poh.vendorid
     GROUP BY v.name
@@ -524,9 +524,9 @@ section("PURCHASING: Purchase Order Trends")
 po_trend = sql("""
     SELECT
         TO_CHAR(orderdate, 'YYYY-MM')   AS year_month,
-        COUNT(*)                        AS order_count,
-        SUM(totaldue)                   AS total_spend,
-        AVG(totaldue)                   AS avg_order_value
+        COUNT(*)                                        AS order_count,
+        SUM(subtotal + taxamt + freight)                AS total_spend,
+        AVG(subtotal + taxamt + freight)                AS avg_order_value
     FROM purchasing.purchaseorderheader
     GROUP BY year_month
     ORDER BY year_month
