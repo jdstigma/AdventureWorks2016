@@ -21,7 +21,3 @@ openpyxl
 # Jupyter notebook execution
 nbconvert
 ipykernel
-
-# Power BI integration (powerbi_push.py)
-msal
-requests
