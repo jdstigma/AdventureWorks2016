@@ -254,7 +254,7 @@ DATASET_SCHEMA = {
             ],
         },
         {
-            "name": "TopProducts",
+            "name": "Products",
             "columns": [
                 {"name": "product_name",    "dataType": "String"},
                 {"name": "category",        "dataType": "String"},
@@ -343,7 +343,7 @@ QUERIES = {
         ORDER BY order_year
     """,
 
-    "TopProducts": """
+    "Products": """
         SELECT
             p.name                                                              AS product_name,
             pc.name                                                             AS category,
@@ -357,7 +357,6 @@ QUERIES = {
         JOIN production.productcategory        pc  ON pc.productcategoryid     = psc.productcategoryid
         GROUP BY p.name, pc.name
         ORDER BY total_revenue DESC
-        LIMIT 50
     """,
 
     "TerritoryPerformance": """
