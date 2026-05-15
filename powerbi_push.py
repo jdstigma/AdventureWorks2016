@@ -244,83 +244,106 @@ DATASET_SCHEMA = {
     "name": DATASET_NAME,
     "tables": [
         {
-            "name": "SalesByYear",
+            "name": "SalesOrderHeader",
             "columns": [
-                {"name": "order_year",        "dataType": "Int64"},
-                {"name": "order_count",        "dataType": "Int64"},
-                {"name": "total_sales",        "dataType": "Double"},
-                {"name": "avg_order_value",    "dataType": "Double"},
-                {"name": "unique_customers",   "dataType": "Int64"},
+                {"name": "salesorderid",          "dataType": "Int64"},
+                {"name": "revisionnumber",         "dataType": "Int64"},
+                {"name": "orderdate",              "dataType": "DateTime"},
+                {"name": "duedate",                "dataType": "DateTime"},
+                {"name": "shipdate",               "dataType": "DateTime"},
+                {"name": "status",                 "dataType": "Int64"},
+                {"name": "isonlineorder",          "dataType": "Boolean"},
+                {"name": "purchaseordernumber",    "dataType": "String"},
+                {"name": "accountnumber",          "dataType": "String"},
+                {"name": "customerid",             "dataType": "Int64"},
+                {"name": "salespersonid",          "dataType": "Int64"},
+                {"name": "territoryid",            "dataType": "Int64"},
+                {"name": "territory",              "dataType": "String"},
+                {"name": "country",                "dataType": "String"},
+                {"name": "billtoaddressid",        "dataType": "Int64"},
+                {"name": "shiptoaddressid",        "dataType": "Int64"},
+                {"name": "shipmethodid",           "dataType": "Int64"},
+                {"name": "subtotal",               "dataType": "Double"},
+                {"name": "taxamt",                 "dataType": "Double"},
+                {"name": "freight",                "dataType": "Double"},
+                {"name": "totaldue",               "dataType": "Double"},
+                {"name": "order_year",             "dataType": "Int64"},
+                {"name": "order_month",            "dataType": "String"},
             ],
         },
         {
-            "name": "Products",
+            "name": "SalesOrderDetail",
             "columns": [
-                {"name": "product_name",    "dataType": "String"},
-                {"name": "category",        "dataType": "String"},
-                {"name": "total_revenue",   "dataType": "Double"},
-                {"name": "units_sold",      "dataType": "Int64"},
-                {"name": "avg_unit_price",  "dataType": "Double"},
+                {"name": "salesorderid",        "dataType": "Int64"},
+                {"name": "salesorderdetailid",  "dataType": "Int64"},
+                {"name": "orderqty",            "dataType": "Int64"},
+                {"name": "productid",           "dataType": "Int64"},
+                {"name": "product_name",        "dataType": "String"},
+                {"name": "subcategory",         "dataType": "String"},
+                {"name": "category",            "dataType": "String"},
+                {"name": "specialofferid",      "dataType": "Int64"},
+                {"name": "unitprice",           "dataType": "Double"},
+                {"name": "unitpricediscount",   "dataType": "Double"},
+                {"name": "linetotal",           "dataType": "Double"},
             ],
         },
         {
-            "name": "TerritoryPerformance",
+            "name": "Employee",
             "columns": [
-                {"name": "territory",        "dataType": "String"},
-                {"name": "country",          "dataType": "String"},
-                {"name": "order_count",      "dataType": "Int64"},
-                {"name": "total_revenue",    "dataType": "Double"},
-                {"name": "avg_order_value",  "dataType": "Double"},
+                {"name": "businessentityid",  "dataType": "Int64"},
+                {"name": "nationalidnumber",  "dataType": "String"},
+                {"name": "jobtitle",          "dataType": "String"},
+                {"name": "birthdate",         "dataType": "DateTime"},
+                {"name": "maritalstatus",     "dataType": "String"},
+                {"name": "gender",            "dataType": "String"},
+                {"name": "hiredate",          "dataType": "DateTime"},
+                {"name": "salariedflag",      "dataType": "Boolean"},
+                {"name": "vacationhours",     "dataType": "Int64"},
+                {"name": "sickleavehours",    "dataType": "Int64"},
+                {"name": "department",        "dataType": "String"},
+                {"name": "department_group",  "dataType": "String"},
+                {"name": "pay_rate",          "dataType": "Double"},
+                {"name": "pay_frequency",     "dataType": "Int64"},
+            ],
+        },
+        {
+            "name": "PurchaseOrder",
+            "columns": [
+                {"name": "purchaseorderid",    "dataType": "Int64"},
+                {"name": "revisionnumber",     "dataType": "Int64"},
+                {"name": "status",             "dataType": "Int64"},
+                {"name": "employeeid",         "dataType": "Int64"},
+                {"name": "vendorid",           "dataType": "Int64"},
+                {"name": "vendor_name",        "dataType": "String"},
+                {"name": "shipmethodid",       "dataType": "Int64"},
+                {"name": "orderdate",          "dataType": "DateTime"},
+                {"name": "shipdate",           "dataType": "DateTime"},
+                {"name": "subtotal",           "dataType": "Double"},
+                {"name": "taxamt",             "dataType": "Double"},
+                {"name": "freight",            "dataType": "Double"},
+                {"name": "totaldue",           "dataType": "Double"},
+                {"name": "order_year",         "dataType": "Int64"},
+                {"name": "order_month",        "dataType": "String"},
             ],
         },
         {
             "name": "CustomerSegments",
             "columns": [
+                {"name": "customerid",       "dataType": "Int64"},
+                {"name": "order_count",      "dataType": "Int64"},
+                {"name": "total_spend",      "dataType": "Double"},
+                {"name": "avg_order_value",  "dataType": "Double"},
                 {"name": "segment",          "dataType": "String"},
-                {"name": "customers",        "dataType": "Int64"},
-                {"name": "avg_orders",       "dataType": "Double"},
-                {"name": "avg_spend",        "dataType": "Double"},
-                {"name": "avg_order_val",    "dataType": "Double"},
-            ],
-        },
-        {
-            "name": "EmployeeHeadcount",
-            "columns": [
-                {"name": "department",        "dataType": "String"},
-                {"name": "department_group",  "dataType": "String"},
-                {"name": "employee_count",    "dataType": "Int64"},
             ],
         },
         {
             "name": "VendorSegments",
             "columns": [
-                {"name": "segment",          "dataType": "String"},
-                {"name": "vendors",          "dataType": "Int64"},
-                {"name": "avg_orders",       "dataType": "Double"},
-                {"name": "avg_spend",        "dataType": "Double"},
-                {"name": "avg_order_val",    "dataType": "Double"},
-            ],
-        },
-        {
-            "name": "PurchasingTrends",
-            "columns": [
-                {"name": "year_month",       "dataType": "String"},
+                {"name": "vendor_name",      "dataType": "String"},
                 {"name": "order_count",      "dataType": "Int64"},
                 {"name": "total_spend",      "dataType": "Double"},
                 {"name": "avg_order_value",  "dataType": "Double"},
-            ],
-        },
-        {
-            "name": "SalesOrders",
-            "columns": [
-                {"name": "salesorderid",     "dataType": "Int64"},
-                {"name": "orderdate",        "dataType": "DateTime"},
-                {"name": "totaldue",         "dataType": "Double"},
-                {"name": "territory",        "dataType": "String"},
-                {"name": "order_year",       "dataType": "Int64"},
-                {"name": "order_month",      "dataType": "String"},
-                {"name": "customerid",       "dataType": "Int64"},
-                {"name": "status",           "dataType": "Int64"},
+                {"name": "segment",          "dataType": "String"},
             ],
         },
     ],
@@ -331,84 +354,106 @@ DATASET_SCHEMA = {
 # ---------------------------------------------------------------------------
 
 QUERIES = {
-    "SalesByYear": """
-        SELECT
-            EXTRACT(YEAR FROM orderdate)::int   AS order_year,
-            COUNT(*)                            AS order_count,
-            ROUND(SUM(totaldue)::numeric, 2)    AS total_sales,
-            ROUND(AVG(totaldue)::numeric, 2)    AS avg_order_value,
-            COUNT(DISTINCT customerid)          AS unique_customers
-        FROM sales.salesorderheader
-        GROUP BY order_year
-        ORDER BY order_year
-    """,
-
-    "Products": """
-        SELECT
-            p.name                                                              AS product_name,
-            pc.name                                                             AS category,
-            ROUND(SUM(sod.unitprice*(1.0-sod.unitpricediscount)*sod.orderqty)
-                  ::numeric, 2)                                                 AS total_revenue,
-            SUM(sod.orderqty)::int                                             AS units_sold,
-            ROUND(AVG(sod.unitprice)::numeric, 2)                              AS avg_unit_price
-        FROM sales.salesorderdetail            sod
-        JOIN production.product                p   ON p.productid              = sod.productid
-        JOIN production.productsubcategory     psc ON psc.productsubcategoryid = p.productsubcategoryid
-        JOIN production.productcategory        pc  ON pc.productcategoryid     = psc.productcategoryid
-        GROUP BY p.name, pc.name
-        ORDER BY total_revenue DESC
-    """,
-
-    "TerritoryPerformance": """
-        SELECT
-            st.name                                 AS territory,
-            st.countryregioncode                    AS country,
-            COUNT(soh.salesorderid)                 AS order_count,
-            ROUND(SUM(soh.totaldue)::numeric, 2)    AS total_revenue,
-            ROUND(AVG(soh.totaldue)::numeric, 2)    AS avg_order_value
-        FROM sales.salesorderheader    soh
-        JOIN sales.salesterritory      st ON st.territoryid = soh.territoryid
-        GROUP BY st.name, st.countryregioncode
-        ORDER BY total_revenue DESC
-    """,
-
-    "EmployeeHeadcount": """
-        SELECT
-            d.name                                 AS department,
-            d.groupname                            AS department_group,
-            COUNT(edh.businessentityid)            AS employee_count
-        FROM humanresources.department             d
-        LEFT JOIN humanresources.employeedepartmenthistory edh
-               ON edh.departmentid = d.departmentid
-              AND edh.enddate IS NULL
-        GROUP BY d.name, d.groupname
-        ORDER BY employee_count DESC
-    """,
-
-    "PurchasingTrends": """
-        SELECT
-            TO_CHAR(orderdate, 'YYYY-MM')                    AS year_month,
-            COUNT(*)                                          AS order_count,
-            ROUND(SUM(subtotal+taxamt+freight)::numeric, 2)  AS total_spend,
-            ROUND(AVG(subtotal+taxamt+freight)::numeric, 2)  AS avg_order_value
-        FROM purchasing.purchaseorderheader
-        GROUP BY year_month
-        ORDER BY year_month
-    """,
-
-    "SalesOrders": """
+    "SalesOrderHeader": """
         SELECT
             soh.salesorderid,
+            soh.revisionnumber,
             soh.orderdate,
-            ROUND(soh.totaldue::numeric, 2)         AS totaldue,
-            st.name::text                           AS territory,
-            EXTRACT(YEAR FROM soh.orderdate)::int   AS order_year,
-            TO_CHAR(soh.orderdate, 'YYYY-MM')       AS order_month,
+            soh.duedate,
+            soh.shipdate,
+            soh.status,
+            soh.isonlineorder,
+            soh.purchaseordernumber::text           AS purchaseordernumber,
+            soh.accountnumber::text                 AS accountnumber,
             soh.customerid,
-            soh.status
+            soh.salespersonid,
+            soh.territoryid,
+            st.name::text                           AS territory,
+            st.countryregioncode::text              AS country,
+            soh.billtoaddressid,
+            soh.shiptoaddressid,
+            soh.shipmethodid,
+            ROUND(soh.subtotal::numeric, 2)         AS subtotal,
+            ROUND(soh.taxamt::numeric, 2)           AS taxamt,
+            ROUND(soh.freight::numeric, 2)          AS freight,
+            ROUND(soh.totaldue::numeric, 2)         AS totaldue,
+            EXTRACT(YEAR FROM soh.orderdate)::int   AS order_year,
+            TO_CHAR(soh.orderdate, 'YYYY-MM')       AS order_month
         FROM sales.salesorderheader    soh
         JOIN sales.salesterritory      st ON st.territoryid = soh.territoryid
         ORDER BY soh.orderdate
+    """,
+
+    "SalesOrderDetail": """
+        SELECT
+            sod.salesorderid,
+            sod.salesorderdetailid,
+            sod.orderqty::int                                                   AS orderqty,
+            sod.productid,
+            p.name::text                                                        AS product_name,
+            psc.name::text                                                      AS subcategory,
+            pc.name::text                                                       AS category,
+            sod.specialofferid,
+            ROUND(sod.unitprice::numeric, 2)                                    AS unitprice,
+            ROUND(sod.unitpricediscount::numeric, 4)                            AS unitpricediscount,
+            ROUND(sod.linetotal::numeric, 2)                                    AS linetotal
+        FROM sales.salesorderdetail            sod
+        JOIN production.product                p   ON p.productid              = sod.productid
+        LEFT JOIN production.productsubcategory psc ON psc.productsubcategoryid = p.productsubcategoryid
+        LEFT JOIN production.productcategory   pc  ON pc.productcategoryid     = psc.productcategoryid
+        ORDER BY sod.salesorderid, sod.salesorderdetailid
+    """,
+
+    "Employee": """
+        SELECT
+            e.businessentityid,
+            e.nationalidnumber::text                AS nationalidnumber,
+            e.jobtitle::text                        AS jobtitle,
+            e.birthdate,
+            e.maritalstatus::text                   AS maritalstatus,
+            e.gender::text                          AS gender,
+            e.hiredate,
+            e.salariedflag,
+            e.vacationhours,
+            e.sickleavehours,
+            d.name::text                            AS department,
+            d.groupname::text                       AS department_group,
+            ROUND(eph.rate::numeric, 2)             AS pay_rate,
+            eph.payfrequency                        AS pay_frequency
+        FROM humanresources.employee                        e
+        JOIN humanresources.employeedepartmenthistory       edh ON edh.businessentityid = e.businessentityid
+                                                               AND edh.enddate IS NULL
+        JOIN humanresources.department                      d   ON d.departmentid = edh.departmentid
+        JOIN LATERAL (
+            SELECT rate, payfrequency
+            FROM humanresources.employeepayhistory
+            WHERE businessentityid = e.businessentityid
+            ORDER BY ratechangedate DESC
+            LIMIT 1
+        ) eph ON TRUE
+        ORDER BY e.businessentityid
+    """,
+
+    "PurchaseOrder": """
+        SELECT
+            poh.purchaseorderid,
+            poh.revisionnumber,
+            poh.status,
+            poh.employeeid,
+            poh.vendorid,
+            v.name::text                                AS vendor_name,
+            poh.shipmethodid,
+            poh.orderdate,
+            poh.shipdate,
+            ROUND(poh.subtotal::numeric, 2)             AS subtotal,
+            ROUND(poh.taxamt::numeric, 2)               AS taxamt,
+            ROUND(poh.freight::numeric, 2)              AS freight,
+            ROUND((poh.subtotal+poh.taxamt+poh.freight)::numeric, 2) AS totaldue,
+            EXTRACT(YEAR FROM poh.orderdate)::int       AS order_year,
+            TO_CHAR(poh.orderdate, 'YYYY-MM')           AS order_month
+        FROM purchasing.purchaseorderheader    poh
+        JOIN purchasing.vendor                 v ON v.businessentityid = poh.vendorid
+        ORDER BY poh.orderdate
     """,
 }
 
@@ -442,15 +487,9 @@ def build_customer_segments(engine) -> pd.DataFrame:
     raw["segment"] = raw["cluster"].map(label_map)
 
     return (
-        raw.groupby("segment")
-        .agg(
-            customers    = ("customerid",     "count"),
-            avg_orders   = ("order_count",    "mean"),
-            avg_spend    = ("total_spend",    "mean"),
-            avg_order_val= ("avg_order_value","mean"),
-        )
-        .round(2)
-        .reset_index()
+        raw[["customerid", "order_count", "total_spend", "avg_order_value", "segment"]]
+        .round({"total_spend": 2, "avg_order_value": 2})
+        .reset_index(drop=True)
     )
 
 
@@ -482,15 +521,9 @@ def build_vendor_segments(engine) -> pd.DataFrame:
     raw["segment"] = raw["cluster"].map(label_map)
 
     return (
-        raw.groupby("segment")
-        .agg(
-            vendors      = ("vendor_name",    "count"),
-            avg_orders   = ("order_count",    "mean"),
-            avg_spend    = ("total_spend",    "mean"),
-            avg_order_val= ("avg_order_value","mean"),
-        )
-        .round(2)
-        .reset_index()
+        raw[["vendor_name", "order_count", "total_spend", "avg_order_value", "segment"]]
+        .round({"total_spend": 2, "avg_order_value": 2})
+        .reset_index(drop=True)
     )
 
 
