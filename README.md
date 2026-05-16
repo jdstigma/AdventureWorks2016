@@ -1,7 +1,7 @@
 # AdventureWorks2016 Dataset
 
 ## ├── AdventureWorks-for-Postgre
-|-Connection point for Postgre-
+   Connection point for Postgre
 #### │   ├── AWBuildVersion.csv
 #### │   ├── Address.csv
 #### │   ├── AddressType.csv
